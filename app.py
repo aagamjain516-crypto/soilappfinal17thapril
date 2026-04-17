@@ -246,23 +246,25 @@ if uploaded_file:
 
         if humidity:
             analysis = civil_analysis(soil_type, humidity)
-
+        
+            quality = soil_quality_grade(soil_type, humidity)
+            risk = risk_alert(analysis["Settlement"], humidity)
+            grain = grain_size_estimate(soil_type)
+        
+            st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
+        
             st.subheader("🏗️ Civil Engineering Analysis")
-
             for key, value in analysis.items():
                 st.write(f"**{key}:** {value}")
-
-            st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
+        
+            st.subheader("📊 Additional Insights")
             st.write("Quality:", quality)
-            st.write("Bearing:", bearing)
-            st.write("Settlement:", settlement)
-            st.write("Foundation:", foundation)
             st.write("Risk:", risk)
             st.write("Grain Size:", grain)
-
+        
             if st.button("Send Email Report"):
                 send_email_report(soil_type, humidity, quality, grain, risk)
-
+        
             log_data(soil_type, humidity, risk)
 
         else:
