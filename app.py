@@ -21,7 +21,7 @@ soil_labels = ['alluvial', 'black', 'clay', 'red', 'yellow']
 model_accuracy = "96.5%"
 
 # -------------------------
-# DOWNLOAD MODEL (FIXED LINK)
+# DOWNLOAD MODEL
 # -------------------------
 MODEL_PATH = "best_soil_model.pth"
 
@@ -33,7 +33,7 @@ if not os.path.exists(MODEL_PATH):
     )
 
 # -------------------------
-# LOAD MODEL (CORRECT WAY)
+# LOAD MODEL
 # -------------------------
 @st.cache_resource
 def load_model():
@@ -76,101 +76,62 @@ def get_weather(city):
 # GRAIN SIZE
 # -------------------------
 def grain_size_estimate(soil_type):
-    if soil_type == "red":
-        return "Coarse to medium particle size with good drainage."
-    elif soil_type == "alluvial":
-        return "Mixed particle size including sand and silt."
-    elif soil_type == "clay":
-        return "Very fine particle size with low permeability."
-    elif soil_type == "black":
-        return "Fine particle size with high moisture retention."
-    else:
-        return "Unknown grain characteristics."
-
-# -------------------------
-# EMAIL
-# -------------------------
-def send_email_report(soil_type, humidity, quality, grain_size, risk):
-    sender = "aagamjain816@gmail.com"
-    receiver = "aagamjain516@gmail.com"
-    password = "eqtbmlqavgcpzfrv"
-
-    body = f"""
-Soil Type: {soil_type}
-Humidity: {humidity}%
-
-Quality: {quality}
-Grain Size: {grain_size}
-Risk: {risk}
-"""
-
-    msg = MIMEText(body)
-    msg["Subject"] = "Soil Monitoring Report"
-    msg["From"] = sender
-    msg["To"] = receiver
-
-    try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        server.login(sender, password)
-        server.sendmail(sender, receiver, msg.as_string())
-        server.quit()
-        st.success("Email sent successfully")
-    except:
-        st.error("Email sending failed")
+    mapping = {
+        "red": "Coarse to medium particle size with good drainage.",
+        "alluvial": "Mixed particle size including sand and silt.",
+        "clay": "Very fine particle size with low permeability.",
+        "black": "Fine particle size with high moisture retention.",
+        "yellow": "Moderate particle size with balanced properties."
+    }
+    return mapping.get(soil_type, "Unknown")
 
 # -------------------------
 # CIVIL ANALYSIS
 # -------------------------
 def civil_analysis(soil, humidity):
-    if soil == "clay":
-        return {
+    data = {
+        "clay": {
             "Bearing Capacity": "75–150 kN/m²",
-            "Settlement": "High settlement due to compressibility",
-            "Foundation": "Pile or raft foundation recommended",
-            "Drainage": "Poor drainage, retains water",
+            "Settlement": "High settlement",
+            "Foundation": "Pile/raft foundation",
+            "Drainage": "Poor drainage",
             "Suitability": "Not ideal for heavy structures",
-            "Precautions": "Soil stabilization required, avoid waterlogging"
-        }
-
-    elif soil == "black":
-        return {
+            "Precautions": "Stabilization required"
+        },
+        "black": {
             "Bearing Capacity": "50–100 kN/m²",
-            "Settlement": "Very high shrink-swell behavior",
-            "Foundation": "Deep foundation with moisture control",
+            "Settlement": "Very high shrink-swell",
+            "Foundation": "Deep foundation",
             "Drainage": "Very poor drainage",
-            "Suitability": "Risky for construction without treatment",
-            "Precautions": "Use lime stabilization, control moisture variation"
-        }
-
-    elif soil == "alluvial":
-        return {
+            "Suitability": "Risky soil",
+            "Precautions": "Moisture control needed"
+        },
+        "alluvial": {
             "Bearing Capacity": "100–200 kN/m²",
             "Settlement": "Moderate settlement",
-            "Foundation": "Raft or strip footing",
+            "Foundation": "Raft footing",
             "Drainage": "Good drainage",
-            "Suitability": "Good for most structures",
-            "Precautions": "Check for loose sand zones"
-        }
-
-    elif soil == "red":
-        return {
+            "Suitability": "Good for construction",
+            "Precautions": "Check compaction"
+        },
+        "red": {
             "Bearing Capacity": "150–300 kN/m²",
             "Settlement": "Low settlement",
             "Foundation": "Shallow foundation",
             "Drainage": "Excellent drainage",
-            "Suitability": "Highly suitable for construction",
-            "Precautions": "Minimal treatment required"
-        }
-
-    elif soil == "yellow":
-        return {
+            "Suitability": "Highly suitable",
+            "Precautions": "Minimal treatment"
+        },
+        "yellow": {
             "Bearing Capacity": "120–250 kN/m²",
-            "Settlement": "Low to moderate settlement",
+            "Settlement": "Low to moderate",
             "Foundation": "Shallow foundation",
             "Drainage": "Moderate drainage",
-            "Suitability": "Suitable for light to medium structures",
-            "Precautions": "Compaction recommended before construction"
+            "Suitability": "Suitable",
+            "Precautions": "Compaction needed"
         }
+    }
+    return data.get(soil)
 
 # -------------------------
 # QUALITY
@@ -186,18 +147,77 @@ def soil_quality_grade(soil_type, humidity):
 
     if humidity > 80:
         grade += " (High moisture)"
-
     return grade
 
 # -------------------------
-# RISK
+# ADVANCED RISK
 # -------------------------
-def risk_alert(settlement, humidity):
-    if "very high" in settlement.lower():
-        return "HIGH RISK"
-    elif humidity > 80:
-        return "MODERATE RISK"
-    return "LOW RISK"
+def risk_alert(analysis, humidity):
+    settlement = analysis["Settlement"].lower()
+    drainage = analysis["Drainage"].lower()
+    suitability = analysis["Suitability"].lower()
+
+    score = 0
+    reasons = []
+
+    if "very high" in settlement:
+        score += 3
+        reasons.append("Very high settlement")
+    elif "high" in settlement:
+        score += 2
+        reasons.append("High settlement")
+    elif "moderate" in settlement:
+        score += 1
+        reasons.append("Moderate settlement")
+
+    if "poor" in drainage:
+        score += 2
+        reasons.append("Poor drainage")
+
+    if "not ideal" in suitability or "risky" in suitability:
+        score += 2
+        reasons.append("Low suitability")
+
+    if humidity > 80:
+        score += 2
+        reasons.append("High moisture")
+
+    if score >= 6:
+        return "HIGH RISK", reasons
+    elif score >= 3:
+        return "MODERATE RISK", reasons
+    else:
+        return "LOW RISK", reasons
+
+# -------------------------
+# EMAIL
+# -------------------------
+def send_email_report(soil_type, humidity, quality, grain_size, risk):
+    sender = "aagamjain816@gmail.com"
+    receiver = "aagamjain516@gmail.com"
+    password = "eqtbmlqavgcpzfrv"
+
+    body = f"""
+Soil: {soil_type}
+Humidity: {humidity}
+Quality: {quality}
+Grain: {grain_size}
+Risk: {risk}
+"""
+
+    msg = MIMEText(body)
+    msg["Subject"] = "Soil Report"
+    msg["From"] = sender
+    msg["To"] = receiver
+
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(sender, password)
+        server.sendmail(sender, receiver, msg.as_string())
+        server.quit()
+        st.success("Email sent")
+    except:
+        st.error("Email failed")
 
 # -------------------------
 # LOGGING
@@ -210,23 +230,24 @@ def log_data(soil_type, humidity, risk):
 # -------------------------
 # UI
 # -------------------------
-st.title("🌱 Deep learning ResNet50 - Based Soil Classification")
+st.title("🌱 Deep Learning ResNet50 Soil Classification")
 
 st.sidebar.title("Model Info")
 st.sidebar.write(f"Accuracy: {model_accuracy}")
 
-st.sidebar.subheader("Team Members")
+st.sidebar.subheader("👥 Team Members")
 st.sidebar.write("• Aagam Jain - 25BCE0220")
 st.sidebar.write("• Harini R V - 25BCV0045")
 st.sidebar.write("• Dharshan Boopalan - 25BEC0447")
 st.sidebar.write("• Deva Harsha - 25BCE2011")
 st.sidebar.write("• Parzaan - 25BCE2309")
-uploaded_file = st.file_uploader("Upload Soil Image", type=["jpg", "png", "jpeg"])
+
+uploaded_file = st.file_uploader("Upload Soil Image", type=["jpg","png","jpeg"])
 city = st.text_input("Enter City")
 
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image")
+    st.image(image)
 
     img = transform(image).unsqueeze(0)
 
@@ -236,7 +257,7 @@ if uploaded_file:
         confidence, predicted = torch.max(probs, 1)
 
     soil_type = soil_labels[predicted.item()]
-    confidence = confidence.item() * 100
+    confidence = confidence.item()*100
 
     st.subheader(f"Soil Type: {soil_type.upper()}")
     st.write(f"Confidence: {confidence:.2f}%")
@@ -246,25 +267,30 @@ if uploaded_file:
 
         if humidity:
             analysis = civil_analysis(soil_type, humidity)
-        
             quality = soil_quality_grade(soil_type, humidity)
-            risk = risk_alert(analysis["Settlement"], humidity)
+            risk, reasons = risk_alert(analysis, humidity)
             grain = grain_size_estimate(soil_type)
-        
-            st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
-        
-            st.subheader("🏗️ Civil Engineering Analysis")
-            for key, value in analysis.items():
-                st.write(f"**{key}:** {value}")
-        
-            st.subheader("📊 Additional Insights")
+
+            st.write(f"Temperature: {temp}°C | Humidity: {humidity}%")
+
+            st.subheader("🏗️ Civil Analysis")
+            for k,v in analysis.items():
+                st.write(f"**{k}:** {v}")
+
+            st.subheader("⚠️ Risk Assessment")
+            if risk=="HIGH RISK": st.error(risk)
+            elif risk=="MODERATE RISK": st.warning(risk)
+            else: st.success(risk)
+
+            for r in reasons:
+                st.write(f"- {r}")
+
             st.write("Quality:", quality)
-            st.write("Risk:", risk)
             st.write("Grain Size:", grain)
-        
-            if st.button("Send Email Report"):
+
+            if st.button("Send Email"):
                 send_email_report(soil_type, humidity, quality, grain, risk)
-        
+
             log_data(soil_type, humidity, risk)
 
         else:
