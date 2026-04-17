@@ -12,7 +12,7 @@ from datetime import datetime
 import os
 import gdown
 
-# ✅ NEW (PDF)
+#(PDF)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
