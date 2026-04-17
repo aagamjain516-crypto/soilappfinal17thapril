@@ -7,3 +7,4 @@ Pillow
 requests
 scikit-learn
 gdown
+reportlab
