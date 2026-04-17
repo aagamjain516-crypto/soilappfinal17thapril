@@ -18,7 +18,7 @@ import gdown
 st.set_page_config(page_title="Soil Classifier", layout="centered")
 
 soil_labels = ['alluvial', 'black', 'clay', 'red', 'yellow']
-model_accuracy = "97%"
+model_accuracy = "96.5%"
 
 # -------------------------
 # DOWNLOAD MODEL (FIXED LINK)
@@ -123,15 +123,54 @@ Risk: {risk}
 # -------------------------
 def civil_analysis(soil, humidity):
     if soil == "clay":
-        return "75–150 kN/m²", "High settlement", "Pile/raft foundation"
+        return {
+            "Bearing Capacity": "75–150 kN/m²",
+            "Settlement": "High settlement due to compressibility",
+            "Foundation": "Pile or raft foundation recommended",
+            "Drainage": "Poor drainage, retains water",
+            "Suitability": "Not ideal for heavy structures",
+            "Precautions": "Soil stabilization required, avoid waterlogging"
+        }
+
     elif soil == "black":
-        return "50–100 kN/m²", "Very high settlement", "Deep foundation"
+        return {
+            "Bearing Capacity": "50–100 kN/m²",
+            "Settlement": "Very high shrink-swell behavior",
+            "Foundation": "Deep foundation with moisture control",
+            "Drainage": "Very poor drainage",
+            "Suitability": "Risky for construction without treatment",
+            "Precautions": "Use lime stabilization, control moisture variation"
+        }
+
     elif soil == "alluvial":
-        return "100–200 kN/m²", "Moderate settlement", "Raft footing"
+        return {
+            "Bearing Capacity": "100–200 kN/m²",
+            "Settlement": "Moderate settlement",
+            "Foundation": "Raft or strip footing",
+            "Drainage": "Good drainage",
+            "Suitability": "Good for most structures",
+            "Precautions": "Check for loose sand zones"
+        }
+
     elif soil == "red":
-        return "150–300 kN/m²", "Low settlement", "Shallow foundation"
-    else:
-        return "N/A", "N/A", "N/A"
+        return {
+            "Bearing Capacity": "150–300 kN/m²",
+            "Settlement": "Low settlement",
+            "Foundation": "Shallow foundation",
+            "Drainage": "Excellent drainage",
+            "Suitability": "Highly suitable for construction",
+            "Precautions": "Minimal treatment required"
+        }
+
+    elif soil == "yellow":
+        return {
+            "Bearing Capacity": "120–250 kN/m²",
+            "Settlement": "Low to moderate settlement",
+            "Foundation": "Shallow foundation",
+            "Drainage": "Moderate drainage",
+            "Suitability": "Suitable for light to medium structures",
+            "Precautions": "Compaction recommended before construction"
+        }
 
 # -------------------------
 # QUALITY
@@ -171,11 +210,17 @@ def log_data(soil_type, humidity, risk):
 # -------------------------
 # UI
 # -------------------------
-st.title("🌱 AI-Based Soil Classification")
+st.title("🌱 Deep learning ResNet50 - Based Soil Classification")
 
 st.sidebar.title("Model Info")
 st.sidebar.write(f"Accuracy: {model_accuracy}")
 
+st.sidebar.subheader("Team Members")
+st.sidebar.write("• Aagam Jain - 25BCE0220")
+st.sidebar.write("• Harini R V - 25BCV0045")
+st.sidebar.write("• Dharshan Boopalan - 25BEC0447")
+st.sidebar.write("• Deva Harsha - 25BCE2011")
+st.sidebar.write("• Parzaan - 25BCE2309")
 uploaded_file = st.file_uploader("Upload Soil Image", type=["jpg", "png", "jpeg"])
 city = st.text_input("Enter City")
 
@@ -200,10 +245,12 @@ if uploaded_file:
         humidity, temp = get_weather(city)
 
         if humidity:
-            bearing, settlement, foundation = civil_analysis(soil_type, humidity)
-            quality = soil_quality_grade(soil_type, humidity)
-            risk = risk_alert(settlement, humidity)
-            grain = grain_size_estimate(soil_type)
+            analysis = civil_analysis(soil_type, humidity)
+
+            st.subheader("🏗️ Civil Engineering Analysis")
+
+            for key, value in analysis.items():
+            st.write(f"**{key}:** {value}")
 
             st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
             st.write("Quality:", quality)
