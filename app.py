@@ -9,19 +9,10 @@ import smtplib
 from email.mime.text import MIMEText
 import csv
 from datetime import datetime
-import gdown # type: ignore
 import os
 import gdown
 
-# Download model if not present
-if not os.path.exists("best_soil_model.pth"):
-    gdown.download("https://drive.google.com/file/d/10x3uB72g0nzx2NEDtO9nobC1RDAlzbWU/view?usp=sharing", "best_soil_model.pth", quiet=False)
-
-model = torch.load("best_soil_model.pth", map_location=torch.device('cpu'))
-model.eval()
-
 # -------------------------
-
 # CONFIG
 # -------------------------
 st.set_page_config(page_title="Soil Classifier", layout="centered")
@@ -30,14 +21,29 @@ soil_labels = ['alluvial', 'black', 'clay', 'red', 'yellow']
 model_accuracy = "97%"
 
 # -------------------------
-# LOAD MODEL
+# DOWNLOAD MODEL (FIXED LINK)
+# -------------------------
+MODEL_PATH = "best_soil_model.pth"
+
+if not os.path.exists(MODEL_PATH):
+    gdown.download(
+        "https://drive.google.com/uc?id=10x3uB72g0nzx2NEDtO9nobC1RDAlzbWU",
+        MODEL_PATH,
+        quiet=False
+    )
+
+# -------------------------
+# LOAD MODEL (CORRECT WAY)
 # -------------------------
 @st.cache_resource
 def load_model():
     model = resnet50(weights=ResNet50_Weights.DEFAULT)
     num_features = model.fc.in_features
     model.fc = nn.Linear(num_features, len(soil_labels))
-    model.load_state_dict(torch.load("best_soil_model.pth", map_location="cpu"))
+
+    state_dict = torch.load(MODEL_PATH, map_location="cpu")
+    model.load_state_dict(state_dict)
+
     model.eval()
     return model
 
@@ -50,8 +56,6 @@ transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
 ])
-
-device = torch.device("cpu")
 
 # -------------------------
 # WEATHER
@@ -80,6 +84,8 @@ def grain_size_estimate(soil_type):
         return "Very fine particle size with low permeability."
     elif soil_type == "black":
         return "Fine particle size with high moisture retention."
+    else:
+        return "Unknown grain characteristics."
 
 # -------------------------
 # EMAIL
@@ -124,6 +130,8 @@ def civil_analysis(soil, humidity):
         return "100–200 kN/m²", "Moderate settlement", "Raft footing"
     elif soil == "red":
         return "150–300 kN/m²", "Low settlement", "Shallow foundation"
+    else:
+        return "N/A", "N/A", "N/A"
 
 # -------------------------
 # QUALITY
@@ -133,7 +141,8 @@ def soil_quality_grade(soil_type, humidity):
         "red": "Grade A",
         "alluvial": "Grade B",
         "clay": "Grade C",
-        "black": "Grade C"
+        "black": "Grade C",
+        "yellow": "Grade B"
     }[soil_type]
 
     if humidity > 80:
@@ -162,7 +171,7 @@ def log_data(soil_type, humidity, risk):
 # -------------------------
 # UI
 # -------------------------
-st.title("AI-Based Soil Classification")
+st.title("🌱 AI-Based Soil Classification")
 
 st.sidebar.title("Model Info")
 st.sidebar.write(f"Accuracy: {model_accuracy}")
@@ -196,7 +205,7 @@ if uploaded_file:
             risk = risk_alert(settlement, humidity)
             grain = grain_size_estimate(soil_type)
 
-            st.write(f"Temperature: {temp} C | Humidity: {humidity}%")
+            st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
             st.write("Quality:", quality)
             st.write("Bearing:", bearing)
             st.write("Settlement:", settlement)
