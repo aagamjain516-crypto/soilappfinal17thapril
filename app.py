@@ -250,7 +250,7 @@ if uploaded_file:
             st.subheader("🏗️ Civil Engineering Analysis")
 
             for key, value in analysis.items():
-            st.write(f"**{key}:** {value}")
+                st.write(f"**{key}:** {value}")
 
             st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
             st.write("Quality:", quality)
