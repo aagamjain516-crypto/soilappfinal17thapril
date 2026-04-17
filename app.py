@@ -11,12 +11,14 @@ import csv
 from datetime import datetime
 import gdown # type: ignore
 import os
+import gdown
 
-MODEL_PATH = "best_soil_model.pth"
+# Download model if not present
+if not os.path.exists("best_soil_model.pth"):
+    gdown.download("https://drive.google.com/file/d/10x3uB72g0nzx2NEDtO9nobC1RDAlzbWU/view?usp=sharing", "best_soil_model.pth", quiet=False)
 
-if not os.path.exists(MODEL_PATH):
-    url = "https://drive.google.com/uc?id=1wYlKKDvqh8U_41-N81ZUYy9riy8LcMGk"
-    gdown.download(url, MODEL_PATH, quiet=False)
+model = torch.load("best_soil_model.pth", map_location=torch.device('cpu'))
+model.eval()
 
 # -------------------------
 
