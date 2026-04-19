@@ -237,16 +237,6 @@ st.title("🌱 Deep learning ResNet50 - Based Soil Classification")
 if "history" not in st.session_state:
     st.session_state.history = []
 
-st.sidebar.title("Model Info")
-st.sidebar.write(f"Accuracy: {model_accuracy}")
-
-st.sidebar.subheader("Team Members")
-st.sidebar.write("• Aagam Jain - 25BCE0220")
-st.sidebar.write("• Harini R V - 25BCV0045")
-st.sidebar.write("• Dharshan Boopalan - 25BEC0447")
-st.sidebar.write("• Deva Harsha - 25BCE2011")
-st.sidebar.write("• Parzaan - 25BCE2309")
-
 uploaded_file = st.file_uploader("Upload Soil Image", type=["jpg", "png", "jpeg"])
 city = st.text_input("Enter City")
 
@@ -277,11 +267,7 @@ if uploaded_file:
             grain = grain_size_estimate(soil_type)
 
             construction_risks = construction_risk(
-                soil_type,
-                moisture=humidity,
-                temp=temp,
-                humidity=humidity,
-                rainfall=rainfall if rainfall else 0
+                soil_type, humidity, temp, humidity, rainfall if rainfall else 0
             )
 
             st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
@@ -294,98 +280,47 @@ if uploaded_file:
             st.write("Risk:", risk)
             st.write("Grain Size:", grain)
 
-            # THEORY
-            st.subheader("🌦️ Effect of Weather on Soil Behavior")
-            st.write("""
-- Rainfall increases moisture and reduces strength  
-- Temperature causes drying and shrinkage  
-- Humidity affects compaction and stability  
-""")
-
-            st.subheader("🏗️ Construction Risk Theory")
-            st.write("""
-- Settlement: Soil compression under load  
-- Bearing Capacity: Load carrying ability  
-- Shrink-Swell: Expansion and contraction  
-- Erosion: Soil loss due to rain  
-""")
-
-            # FUTURE
+            # FUTURE (WITH REASONS)
             st.subheader("📅 Future Soil Risk Prediction")
+
             for days in [30, 60, 90]:
-                future_risks = construction_risk(
-                    soil_type,
-                    moisture=humidity - (days//30)*5,
-                    temp=temp + (days//30)*2,
-                    humidity=humidity,
-                    rainfall=rainfall + (days//30)*20 if rainfall else 0
-                )
-                score_map = {"Low": 1, "Moderate": 2, "High": 3}
-                future_score = sum(score_map[level] for level, _ in future_risks.values())
+                future_score = 0
+
+                if temp > 30:
+                    future_score += 1
+                if rainfall and rainfall > 0:
+                    future_score += 1
+                if soil_type == "clay":
+                    future_score += 2
+
                 st.write(f"After {days} days → Risk Score: {future_score}")
 
-            # CURRENT RISK
-            st.subheader("🏗️ AI-Based Construction Risk Prediction")
-            for key, (level, msg) in construction_risks.items():
-                if level == "High":
-                    st.error(f"{key}: {level}")
-                elif level == "Moderate":
-                    st.warning(f"{key}: {level}")
-                else:
-                    st.success(f"{key}: {level}")
-
-            score_map = {"Low": 1, "Moderate": 2, "High": 3}
-            overall_score = sum(score_map[level] for level, _ in construction_risks.values())
-
-            st.metric("🏗️ Overall Construction Risk Score", overall_score)
-
-            st.subheader("🤖 Recommendation")
-            if overall_score >= 8:
-                st.error("Avoid construction or use deep foundation")
-            elif overall_score >= 5:
-                st.warning("Use soil stabilization techniques")
-            else:
-                st.success("Safe for construction")
+                st.write("Reason:")
+                if temp > 30:
+                    st.write("- High temperature → drying & shrinkage")
+                if rainfall:
+                    st.write("- Rainfall → soil softening")
+                if soil_type == "clay":
+                    st.write("- Clay → shrink-swell behavior")
 
             # GRAPH
             st.session_state.history.append({
                 "Moisture": humidity,
                 "Temperature": temp,
-                "Risk": overall_score
+                "Risk": future_score
             })
 
             if len(st.session_state.history) > 20:
                 st.session_state.history.pop(0)
 
-            st.subheader("📊 Soil & Risk Trends")
+            st.subheader("📊 Soil Trends")
+
             df = pd.DataFrame(st.session_state.history)
 
             if len(df) > 1:
                 st.line_chart(df)
             else:
-                st.info("Upload more samples to see trend graph 📈")
-
-            # PDF
-            report_data = {
-                "Soil Type": soil_type,
-                "Confidence": f"{confidence:.2f}%",
-                "Temperature": temp,
-                "Humidity": humidity,
-                "Quality": quality,
-                "Risk": risk,
-                "Grain Size": grain,
-                "Construction Risk Score": overall_score
-            }
-
-            if st.button("Generate PDF Report"):
-                pdf_file = generate_pdf(report_data)
-                with open(pdf_file, "rb") as f:
-                    st.download_button("Download Report", f, file_name="soil_report.pdf")
-
-            if st.button("Send Email Report"):
-                send_email_report(soil_type, humidity, quality, grain, risk)
-
-            log_data(soil_type, humidity, risk)
+                st.info("Upload more samples to see graph")
 
         else:
             st.error("City not found")
