@@ -294,6 +294,22 @@ if uploaded_file:
             st.write("Risk:", risk)
             st.write("Grain Size:", grain)
 
+            # THEORY
+            st.subheader("🌦️ Effect of Weather on Soil Behavior")
+            st.write("""
+- Rainfall increases moisture and reduces strength  
+- Temperature causes drying and shrinkage  
+- Humidity affects compaction and stability  
+""")
+
+            st.subheader("🏗️ Construction Risk Theory")
+            st.write("""
+- Settlement: Soil compression under load  
+- Bearing Capacity: Load carrying ability  
+- Shrink-Swell: Expansion and contraction  
+- Erosion: Soil loss due to rain  
+""")
+
             # FUTURE
             st.subheader("📅 Future Soil Risk Prediction")
             for days in [30, 60, 90]:
@@ -312,18 +328,17 @@ if uploaded_file:
             st.subheader("🏗️ AI-Based Construction Risk Prediction")
             for key, (level, msg) in construction_risks.items():
                 if level == "High":
-                    st.error(f"{key}: {level} ⚠️\n{msg}")
+                    st.error(f"{key}: {level}")
                 elif level == "Moderate":
-                    st.warning(f"{key}: {level}\n{msg}")
+                    st.warning(f"{key}: {level}")
                 else:
-                    st.success(f"{key}: {level}\n{msg}")
+                    st.success(f"{key}: {level}")
 
             score_map = {"Low": 1, "Moderate": 2, "High": 3}
             overall_score = sum(score_map[level] for level, _ in construction_risks.values())
 
             st.metric("🏗️ Overall Construction Risk Score", overall_score)
 
-            # RECOMMENDATION
             st.subheader("🤖 Recommendation")
             if overall_score >= 8:
                 st.error("Avoid construction or use deep foundation")
@@ -344,7 +359,11 @@ if uploaded_file:
 
             st.subheader("📊 Soil & Risk Trends")
             df = pd.DataFrame(st.session_state.history)
-            st.line_chart(df)
+
+            if len(df) > 1:
+                st.line_chart(df)
+            else:
+                st.info("Upload more samples to see trend graph 📈")
 
             # PDF
             report_data = {
