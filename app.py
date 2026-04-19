@@ -11,6 +11,7 @@ import csv
 from datetime import datetime
 import os
 import gdown
+from risk_engine import construction_risk
 
 #(PDF)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -62,7 +63,7 @@ transform = transforms.Compose([
 ])
 
 # -------------------------
-# WEATHER
+# WEATHER (UPDATED ✅)
 # -------------------------
 def get_weather(city):
     api_key = "e600cfd7f0d948f281183753262402"
@@ -71,10 +72,14 @@ def get_weather(city):
     try:
         data = requests.get(url).json()
         if "error" in data:
-            return None, None
-        return data["current"]["humidity"], data["current"]["temp_c"]
+            return None, None, None
+        return (
+            data["current"]["humidity"],
+            data["current"]["temp_c"],
+            data["current"]["precip_mm"]  # NEW
+        )
     except:
-        return None, None
+        return None, None, None
 
 # -------------------------
 # GRAIN SIZE
@@ -200,7 +205,7 @@ def risk_alert(analysis, humidity):
     return "LOW RISK"
 
 # -------------------------
-# PDF FUNCTION (NEW)
+# PDF FUNCTION
 # -------------------------
 def generate_pdf(report_data):
     file_path = "soil_report.pdf"
@@ -259,13 +264,22 @@ if uploaded_file:
     st.write(f"Confidence: {confidence:.2f}%")
 
     if city:
-        humidity, temp = get_weather(city)
+        humidity, temp, rainfall = get_weather(city)
 
         if humidity:
             analysis = civil_analysis(soil_type, humidity)
             quality = soil_quality_grade(soil_type, humidity)
             risk = risk_alert(analysis, humidity)
             grain = grain_size_estimate(soil_type)
+
+            # 🆕 NEW CONSTRUCTION RISK
+            construction_risks = construction_risk(
+                soil_type,
+                moisture=humidity,
+                temp=temp,
+                humidity=humidity,
+                rainfall=rainfall if rainfall else 0
+            )
 
             st.write(f"Temperature: {temp} °C | Humidity: {humidity}%")
 
@@ -277,7 +291,23 @@ if uploaded_file:
             st.write("Risk:", risk)
             st.write("Grain Size:", grain)
 
-            # ✅ PDF BUTTON
+            # 🆕 DISPLAY NEW FEATURE
+            st.subheader("🏗️ AI-Based Construction Risk Prediction")
+
+            for key, (level, msg) in construction_risks.items():
+                if level == "High":
+                    st.error(f"{key}: {level} ⚠️\n{msg}")
+                elif level == "Moderate":
+                    st.warning(f"{key}: {level}\n{msg}")
+                else:
+                    st.success(f"{key}: {level}\n{msg}")
+
+            score_map = {"Low": 1, "Moderate": 2, "High": 3}
+            overall_score = sum(score_map[level] for level, _ in construction_risks.values())
+
+            st.metric("🏗️ Overall Construction Risk Score", overall_score)
+
+            # PDF
             report_data = {
                 "Soil Type": soil_type,
                 "Confidence": f"{confidence:.2f}%",
@@ -285,7 +315,8 @@ if uploaded_file:
                 "Humidity": humidity,
                 "Quality": quality,
                 "Risk": risk,
-                "Grain Size": grain
+                "Grain Size": grain,
+                "Construction Risk Score": overall_score
             }
 
             if st.button("Generate PDF Report"):
