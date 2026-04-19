@@ -12,6 +12,7 @@ from datetime import datetime
 import os
 import gdown
 from risk_engine import construction_risk
+import pandas as pd
 
 #(PDF)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -232,6 +233,9 @@ def log_data(soil_type, humidity, risk):
 # UI
 # -------------------------
 st.title("🌱 Deep learning ResNet50 - Based Soil Classification")
+# Store history for graph
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 st.sidebar.title("Model Info")
 st.sidebar.write(f"Accuracy: {model_accuracy}")
@@ -290,6 +294,22 @@ if uploaded_file:
             st.write("Quality:", quality)
             st.write("Risk:", risk)
             st.write("Grain Size:", grain)
+            # 🆕 FUTURE PREDICTION
+                st.subheader("📅 Future Soil Risk Prediction")
+                
+                for days in [30, 60, 90]:
+                    future_risks = construction_risk(
+                        soil_type,
+                        moisture=humidity - (days//30)*5,
+                        temp=temp + (days//30)*2,
+                        humidity=humidity,
+                        rainfall=rainfall + (days//30)*20 if rainfall else 0
+                    )
+                
+                    score_map = {"Low": 1, "Moderate": 2, "High": 3}
+                    future_score = sum(score_map[level] for level, _ in future_risks.values())
+                
+                    st.write(f"After {days} days → Risk Score: {future_score}")
 
             # 🆕 DISPLAY NEW FEATURE
             st.subheader("🏗️ AI-Based Construction Risk Prediction")
@@ -306,6 +326,30 @@ if uploaded_file:
             overall_score = sum(score_map[level] for level, _ in construction_risks.values())
 
             st.metric("🏗️ Overall Construction Risk Score", overall_score)
+            # 🆕 SMART RECOMMENDATION
+                st.subheader("🤖 Recommendation")
+                
+                if overall_score >= 8:
+                    st.error("Avoid construction or use deep foundation")
+                elif overall_score >= 5:
+                    st.warning("Use soil stabilization techniques")
+                else:
+                    st.success("Safe for construction")
+            # 📊 GRAPH TRACKING
+                st.session_state.history.append({
+                    "Moisture": humidity,
+                    "Temperature": temp,
+                    "Risk": overall_score
+                })
+                
+                # limit size
+                if len(st.session_state.history) > 20:
+                    st.session_state.history.pop(0)
+                
+                # display graph
+                st.subheader("📊 Soil & Risk Trends")
+                df = pd.DataFrame(st.session_state.history)
+                st.line_chart(df)
 
             # PDF
             report_data = {
